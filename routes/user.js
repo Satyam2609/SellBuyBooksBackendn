@@ -4,7 +4,7 @@ import { uploads } from "../middleware/upload.js";
 import { authProvider } from "../middleware/authProvider.js";
 import { cartCreate, deletecart, getCart, getprofile } from "../Controller/profile.Controller.js";
 import { jwtverify } from "../middleware/auth.js";
-import { Bookdatafind } from "../Controller/Books.controller.js";
+import { Bookdatafind, FindEngineeringBook, FindMedicalBook } from "../Controller/Books.controller.js";
 import { createOrder } from "../Controller/PayMentBook.js";
 
 const router  = Router()
@@ -19,6 +19,8 @@ router.route("/BookData").get(Bookdatafind)
 router.route("/getAllCart").get(jwtverify , getCart)
 router.route("/create-order").post(jwtverify,createOrder)
 router.route("/deleteCart").delete(jwtverify ,deletecart)
+router.route("/medicalBook").get(FindMedicalBook)
+router.route("/engineeringBook").get(FindEngineeringBook)
 
 
 export default router
