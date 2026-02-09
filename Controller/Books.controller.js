@@ -98,9 +98,25 @@ return res.status(200).json({
 
 })
 
+const getsellBook = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+    console.log(userId, "---------");
+
+    // find all books where userId matches
+    const findsellBook = await sellBookData.find({ userId: userId }); // ✅ correct
+    console.log(findsellBook);
+
+    return res.status(200).json({
+        success: true,
+        books: findsellBook
+    });
+});
+
+
 export {
     Bookdatafind,
     FindMedicalBook,
     FindEngineeringBook,
-    selloldBookData
+    selloldBookData,
+    getsellBook
 }
