@@ -6,6 +6,7 @@ import cors from "cors"
 
 
 const app = express()
+dotenv.config()
 app.use(cors({
   origin:process.env.CORS,
   credentials: true
