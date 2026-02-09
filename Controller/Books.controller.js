@@ -1,5 +1,7 @@
 import { BooksUser } from "../models/Books.js";
 import { asyncHandler } from "../utils/asynHandler.js";
+import uploadCloudinary from "../utils/cloudinary.js";
+import { sellBookData } from "../models/SellBookImage.js";
 
 const Bookdatafind = asyncHandler(async(req , res) => {
     const finddata = await BooksUser.find()
@@ -51,8 +53,54 @@ const FindEngineeringBook = asyncHandler(async(req , res) => {
     
 })
 
+const selloldBookData = asyncHandler(async(req , res) => {
+    const {title , author , price , description , condition , category} = req.body
+    console.log(title , author , price , description , category , condition)
+    if ([title, author, price, description, condition, category].some(f => f.trim() === "")) {
+        return res.status(401).json({
+            success:false,
+            message:"All feilds are required"
+        })
+}
+const uploadBookImage = req.file.path
+console.log(uploadBookImage)
+if(!uploadBookImage){
+    return res.status(401).json({
+        success:false,
+        message:"image not uploaded"
+    })
+}
+const uploadinCloudinary = await uploadCloudinary(uploadBookImage)
+if(!uploadinCloudinary){
+    return res.status(401).json({
+        success:false,
+        message:"url not found"
+    })
+}
+console.log(uploadinCloudinary)
+
+const bookdatasave = await sellBookData.create({
+    userId:req.user._id,
+    title,
+    description,
+    author,
+    price,
+    bookImage:uploadinCloudinary.url,
+    condition,
+    category
+    
+})
+
+return res.status(200).json({
+    success:true,
+    message:"data save"
+})
+
+})
+
 export {
     Bookdatafind,
     FindMedicalBook,
-    FindEngineeringBook
+    FindEngineeringBook,
+    selloldBookData
 }
