@@ -112,11 +112,25 @@ const getsellBook = asyncHandler(async (req, res) => {
     });
 });
 
+const showSellBook = asyncHandler(async(req , res) => {
+    const booksData = await sellBookData.find()
+    if(!booksData){
+        return res.status(401).json({
+            success:false,
+            message:"Books not found"
+        })
+    }
+    return res.status(200).json({
+        success:true,
+        booksData,
+    })
+})
 
 export {
     Bookdatafind,
     FindMedicalBook,
     FindEngineeringBook,
     selloldBookData,
-    getsellBook
+    getsellBook,
+    showSellBook
 }
