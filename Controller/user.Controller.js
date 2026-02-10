@@ -89,6 +89,8 @@ const logginUser = asyncHandler(async(req , res) => {
             message:"user not found"
         })
     }
+    user.isActive = true
+    await user.save({validateBeforeSave:false})
     const isPasswordCheck = await user.isPasswordCorrect(password) 
     if(!isPasswordCheck){
         return res.status(401).json({
@@ -125,7 +127,8 @@ const logout = asyncHandler(async(req , res) => {
 
   await User.findByIdAndUpdate(req.user._id , {
     $set:{
-      refreshtoken:null
+      refreshtoken:null,
+      isActive:false
     }
   },
   {new:true}

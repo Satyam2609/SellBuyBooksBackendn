@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
   bio: {
     type: String,
     default: ''
+  },
+  isActive:{
+    type:Boolean,
+    default:false
   }
 }, {
   timestamps: true

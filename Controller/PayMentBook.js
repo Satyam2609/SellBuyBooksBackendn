@@ -95,13 +95,15 @@ console.log("FINAL AMOUNT:", amount);
     const response = await cashfree.PGCreateOrder(request);
 
     const payment = await PaymentOrderdata.create({
+        useremail:req.user.email,
         order_id:response.data.order_id || "null",
         paymentSessionId:response.data.payment_session_id || "null",
         fullName:paymentdata.fullName,
         email:paymentdata.email,
         phone:paymentdata.phone,
         address:paymentdata.Address,
-        BuildingName:paymentdata.BuildingName
+        BuildingName:paymentdata.BuildingName,
+        orderData:bookscarts.map(i => ({bookId:i.bookId , quantity:i.quantity}))
         
     })
 
