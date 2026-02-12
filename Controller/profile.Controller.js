@@ -3,6 +3,7 @@ import { User } from "../models/User.js";
 import { UserCartsBook } from "../models/Cart.js";
 import { BooksUser } from "../models/Books.js";
 import uploadCloudinary from "../utils/cloudinary.js";
+import { sellBookData } from "../models/SellBookImage.js";
 
 const cartCreate = asyncHandler(async (req, res) => {
   const { bookId, quantity } = req.body;
@@ -16,12 +17,16 @@ const cartCreate = asyncHandler(async (req, res) => {
 
   const email = req.user.email;
 
-  // 🔎 Book DB se lao
-  const book = await BooksUser.findById(bookId);
+  let book = await BooksUser.findById(bookId);
+
+  if (!book) {
+    book = await sellBookData.findById(bookId);
+  }
+
   if (!book) {
     return res.status(404).json({
       success: false,
-      message: "Book not found",
+      message: "Book not found in both collections",
     });
   }
 
@@ -60,6 +65,7 @@ const cartCreate = asyncHandler(async (req, res) => {
     cart,
   });
 });
+
 
 const getCart = asyncHandler(async (req, res) => {
   const email = req.user.email;

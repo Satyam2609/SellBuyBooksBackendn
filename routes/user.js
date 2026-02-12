@@ -6,7 +6,8 @@ import { cartCreate, deletecart, getCart, getprofile } from "../Controller/profi
 import { jwtverify } from "../middleware/auth.js";
 import { Bookdatafind, FindEngineeringBook, FindMedicalBook, getsellBook, selloldBookData, showSellBook } from "../Controller/Books.controller.js";
 import { createOrder } from "../Controller/PayMentBook.js";
-import { adminsignUp, ordersDetails , ordersdatas } from "../Controller/Admin.js";
+import { adminsignUp, anylitics, bookmanage, ordersDetails , ordersdatas } from "../Controller/Admin.js";
+import { imagePrice } from "../Controller/Agent.js";
 
 
 const router  = Router()
@@ -29,6 +30,8 @@ router.route("/adminSignup").post(adminsignUp)
 router.route("/ordersDetails").get(ordersDetails)
 router.route("/ordersdatas").get(jwtverify,ordersdatas)
 router.route("/showSellBook").get(showSellBook)
+router.route("/anlytic").get(anylitics)
+router.route("/bookmanage").get(bookmanage)
 
 
 export default router
