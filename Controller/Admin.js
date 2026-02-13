@@ -86,7 +86,9 @@ const ordersdatas = asyncHandler(async(req , res) => {
 const anylitics = asyncHandler(async (req, res) => {
 
   // 1️⃣ Get all payments
-  const findPayment = await PaymentOrderdata.find();
+ 
+  const findPayment = await PaymentOrderdata.find({createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } });
+  console.log("fnjenfk",findPayment)
   const orders = findPayment.flatMap(order => order.orderData);
 
   if (orders.length === 0) {

@@ -46,7 +46,11 @@ const paymentSceham = new mongoose.Schema({
             }   
 
         }
-    ]
-})
+    ],
+    createdAt:{
+        type:Date,
+        default:Date.now
+    }
+} , {timestamps:true})
 
 export const PaymentOrderdata = mongoose.model("paymentorderdata" , paymentSceham)
