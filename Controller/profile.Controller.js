@@ -7,7 +7,7 @@ import { sellBookData } from "../models/SellBookImage.js";
 
 const cartCreate = asyncHandler(async (req, res) => {
   const { bookId, quantity } = req.body;
-
+  console.log("bookId", bookId, "quantity", quantity)
   if (!bookId) {
     return res.status(400).json({
       success: false,
@@ -18,9 +18,11 @@ const cartCreate = asyncHandler(async (req, res) => {
   const email = req.user.email;
 
   let book = await BooksUser.findById(bookId);
+  console.log("book", book)
 
   if (!book) {
     book = await sellBookData.findById(bookId);
+    console.log(book)
   }
 
   if (!book) {
@@ -72,7 +74,7 @@ const getCart = asyncHandler(async (req, res) => {
 
   const cart = await UserCartsBook
     .findOne({ email })
-    .populate("BookCart.bookId"); // 🔥 MOST IMPORTANT LINE
+    .populate("BookCart.bookId");
 
   if (!cart) {
     return res.status(404).json({
@@ -81,26 +83,43 @@ const getCart = asyncHandler(async (req, res) => {
     });
   }
 
+  // Handle case where some books might not be populated or belong to different collections
+  const bookIds = cart.BookCart.map(item => item.bookId?._id || item.bookId);
+  const books = await BooksUser.find({ _id: { $in: bookIds } });
+  const sellBooks = await sellBookData.find({ _id: { $in: bookIds } });
+  const allBooks = [...books, ...sellBooks];
+
+  // Merge quantity from cart into the book objects
+  const dataWithQuantity = allBooks.map(book => {
+    const cartItem = cart.BookCart.find(item =>
+      (item.bookId?._id || item.bookId).toString() === book._id.toString()
+    );
+    return {
+      ...book.toObject(),
+      quantity: cartItem ? cartItem.quantity : 1
+    };
+  });
+
   return res.status(200).json({
     success: true,
     message: "Cart fetched successfully",
-    cart,
+    data: dataWithQuantity
   });
 });
 
-const deletecart = asyncHandler(async(req , res) => {
+const deletecart = asyncHandler(async (req, res) => {
   const email = req.user.email
-  const {cartId} = req.body
-  console.log("cart",cartId)
-  const findCart = await UserCartsBook.findOne({email})
+  const { cartId } = req.body
+  console.log("cart", cartId)
+  const findCart = await UserCartsBook.findOne({ email })
   findCart.BookCart = findCart.BookCart.filter(
-  item => item.bookId.toString() !== cartId
-);
-await findCart.save()
+    item => item.bookId.toString() !== cartId
+  );
+  await findCart.save()
 
-res.status(200).json({
-  success:true
-})
+  res.status(200).json({
+    success: true
+  })
 })
 
 
@@ -122,8 +141,8 @@ const getprofile = asyncHandler(async (req, res) => {
 });
 
 export {
-    getprofile,
-    cartCreate,
-    getCart,
-    deletecart
+  getprofile,
+  cartCreate,
+  getCart,
+  deletecart
 }

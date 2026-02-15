@@ -14,7 +14,7 @@ const sellBook = new mongoose.Schema({
         type:String,
         required:true
     },
-    price:{
+    originalPrice:{
         type:String,
         required:true
     },

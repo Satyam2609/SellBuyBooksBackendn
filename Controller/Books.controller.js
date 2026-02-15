@@ -158,7 +158,7 @@ NEW, GOOD, AVERAGE, BAD.
     description: description.trim(),
     condition: aiCondition,
     category: category.trim(),
-    price: finalPrice,
+    originalPrice: finalPrice,
     bookImage: uploadResult.secure_url
   });
 

@@ -4,79 +4,51 @@ import { asyncHandler } from "../utils/asynHandler.js";
 import dotenv from "dotenv"
 import mongoose from "mongoose";
 import { BooksUser } from "../models/Books.js";
+import { sellBookData } from "../models/SellBookImage.js";
 import { PaymentOrderdata } from "../models/paymentData.js";
 
 dotenv.config()
 
 const cashfree = new Cashfree(
-    CFEnvironment.SANDBOX,
-    process.env.CASHFREE_CLIENT_ID,
-    process.env.CASHFREE_CLIENT_SECRET
+  CFEnvironment.SANDBOX,
+  process.env.CASHFREE_CLIENT_ID,
+  process.env.CASHFREE_CLIENT_SECRET
 )
 
 
-function generateOrderId(){
-    const uniqueId = crypto.randomBytes(8).toString("hex")
-    const hash = crypto.createHash('sha256')
-    hash.update(uniqueId)
-    return hash.digest('hex').substring(0 , 20)
+function generateOrderId() {
+  const uniqueId = crypto.randomBytes(8).toString("hex")
+  const hash = crypto.createHash('sha256')
+  hash.update(uniqueId)
+  return hash.digest('hex').substring(0, 20)
 }
 
 export const createOrder = async (req, res) => {
   try {
-    const { bookscarts , paymentdata } = req.body;
-console.log(bookscarts)
-console.log("sjfnjfnf",paymentdata.fullName)
-    const find = bookscarts.map(
-  i => new mongoose.Types.ObjectId(i.bookId)
-);
+    const { bookscarts, paymentdata } = req.body;
 
-    
-    const result = await BooksUser.aggregate([
-  {
-    $match: {
-      _id: { $in: find }
-    }
-  },
-  {
-    $addFields: {
-      quantity: {
-        $let: {
-          vars: {
-            item: {
-              $arrayElemAt: [
-                {
-                  $filter: {
-                    input: bookscarts,
-                    as: "cart",
-                    cond: {
-                      $eq: ["$$cart.bookId", { $toString: "$_id" }]
-                    }
-                  }
-                },
-                0
-              ]
-            }
-          },
-          in: "$$item.quantity"
-        }
-      }
-    }
-  },
-  {
-    $group: {
-      _id: null,
-      totalprice: {
-        $sum: {
-          $multiply: ["$originalPrice", "$quantity"]
-        }
-      }
-    }
-  }
-]);
+    console.log("mdskf", bookscarts)
+    console.log("sjfnjfnf")
+    // bookscarts can be an array of IDs or an array of {bookId, quantity} objects
+    const extractId = (item) => (typeof item === 'string' ? item : item.bookId);
+    const extractQty = (item) => (typeof item === 'string' ? 1 : (item.quantity || 1));
 
-const amount = result[0]?.totalprice || 0;
-console.log("FINAL AMOUNT:", amount);
+    const bookIds = bookscarts.map(i => new mongoose.Types.ObjectId(extractId(i)));
+
+    // Search in both collections
+    const books = await BooksUser.find({ _id: { $in: bookIds } });
+    const sellBooks = await sellBookData.find({ _id: { $in: bookIds } });
+    const allBooksFound = [...books, ...sellBooks];
+
+    let amount = 0;
+    allBooksFound.forEach(book => {
+      const cartItem = bookscarts.find(i => extractId(i) === book._id.toString());
+      const quantity = extractQty(cartItem);
+      const price = book.originalPrice || book.price || 0;
+      amount += (Number(price) * Number(quantity));
+    });
+
+    console.log("FINAL CALCULATED AMOUNT:", amount);
     const userId = req.user._id
 
 
@@ -95,16 +67,19 @@ console.log("FINAL AMOUNT:", amount);
     const response = await cashfree.PGCreateOrder(request);
 
     const payment = await PaymentOrderdata.create({
-        useremail:req.user.email,
-        order_id:response.data.order_id || "null",
-        paymentSessionId:response.data.payment_session_id || "null",
-        fullName:paymentdata.fullName,
-        email:paymentdata.email,
-        phone:paymentdata.phone,
-        address:paymentdata.Address,
-        BuildingName:paymentdata.BuildingName,
-        orderData:bookscarts.map(i => ({bookId:i.bookId , quantity:i.quantity}))
-        
+      useremail: req.user.email,
+      order_id: response.data.order_id || "null",
+      paymentSessionId: response.data.payment_session_id || "null",
+      fullName: paymentdata.fullName,
+      email: paymentdata.email,
+      phone: paymentdata.phone,
+      address: paymentdata.Address,
+      BuildingName: paymentdata.BuildingName,
+      orderData: bookscarts.map(i => ({
+        bookId: extractId(i),
+        quantity: extractQty(i)
+      }))
+
     })
 
     res.json({

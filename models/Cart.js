@@ -5,19 +5,20 @@ const cartSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  BookCart: [
-    {
-      bookId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Booksdata",
-        required: true
-      },
-      quantity: {
-        type: Number,
-        default: 1
-      }
+ BookCart: [
+  {
+    bookId: {
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+      refPath: "BookCart.bookModel"
+    },
+    quantity: {
+      type: Number,
+      default: 1
     }
-  ]
+  }
+]
+
 });
 
 export const UserCartsBook = mongoose.model("UserCart", cartSchema);
