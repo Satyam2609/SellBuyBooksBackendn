@@ -48,7 +48,7 @@ export const createOrder = async (req, res) => {
       amount += (Number(price) * Number(quantity));
     });
 
-    console.log("FINAL CALCULATED AMOUNT:", amount);
+    console.log("FINAL CALCULATED  AMOUNT:", amount);
     const userId = req.user._id
 
 
