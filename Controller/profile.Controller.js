@@ -140,9 +140,46 @@ const getprofile = asyncHandler(async (req, res) => {
   res.status(200).json(user);
 });
 
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name, bio } = req.body;
+  const userId = req.user._id;
+
+  let updateData = {};
+  if (name) updateData.username = name;
+  if (bio) updateData.bio = bio;
+
+  if (req.file) {
+    const avatarPath = req.file.path;
+    const uploaded = await uploadCloudinary(avatarPath);
+    if (uploaded) {
+      updateData.profileImage = uploaded.secure_url;
+    }
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { $set: updateData },
+    { new: true, runValidators: true }
+  ).select("-password");
+
+  if (!updatedUser) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: updatedUser,
+  });
+});
+
 export {
   getprofile,
   cartCreate,
   getCart,
-  deletecart
+  deletecart,
+  updateProfile
 }

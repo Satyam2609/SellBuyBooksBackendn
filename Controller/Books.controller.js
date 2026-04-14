@@ -4,6 +4,8 @@ import uploadCloudinary from "../utils/cloudinary.js";
 import { sellBookData } from "../models/SellBookImage.js";
 import Groq from "groq-sdk";
 import dotenv from "dotenv"
+import client from "../Client.js";
+import { json } from "express";
 
 dotenv.config()
 
@@ -12,54 +14,82 @@ const groq = new Groq({
 });
 
 
-const Bookdatafind = asyncHandler(async(req , res) => {
-    const finddata = await BooksUser.find()
-    if(!finddata){
-        return res.status(401).json({
-            success:false,
-            message:"not found"
-        })
-    }
+const Bookdatafind = asyncHandler(async (req, res) => {
+  let finddata 
 
+  finddata = await client.get("booksData")
+  if (finddata) {
+    console.log("Cache hit for booksData");
     return res.status(200).json({
-        success:true,
-        message:"Book finded",
-        finddata
+      success: true,
+      message: "Book finded",
+      finddata:JSON.parse(finddata)
     })
+  } 
+    
+  else{
+     const finddata = await BooksUser.find()
+  await client.set("booksData", JSON.stringify(finddata), "EX", 60 * 60)
+
+  if (!finddata) {
+    return res.status(401).json({
+      success: false,
+      message: "not found"
+    })
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Book finded",
+    finddata
+  })
+  
+  }
+ 
 })
 
-const FindMedicalBook = asyncHandler(async(req , res) => {
-    const findata = await BooksUser.find({category:"medical"})
-    console.log(findata)
-    if(!findata){
-        return res.status(401).json({
-            success:false,
-            message:"Medical Books not found"
-        })
-    }
-    return res.status(200).json({
-        success:true,
-        message:"DataFounded",
-        findata
-    })
-    
+const FindMedicalBook = asyncHandler(async (req, res) => {
+  let findata
+  findata = await client.get("medicalBookData")
+  if(findata){
+    return res.status(200).json({ 
+      success: true,
+      message: "Medical Books Found",
+      findata: JSON.parse(findata)
+    })  
+  }
+   
+  findata = await BooksUser.find({ category: { $regex: /^medical$/i } })
+  await client.set("medicalBookData", JSON.stringify(findata), "EX", 60 * 60)
+  console.log("Medical Books found:", findata.length)
+  return res.status(200).json({
+    success: true,
+    message: "DataFounded",
+    findata
+  })
+
 })
 
-const FindEngineeringBook = asyncHandler(async(req , res) => {
-    const findata = await BooksUser.find({category:"engineering"})
-    console.log(findata)
-    if(!findata){
-        return res.status(401).json({
-            success:false,
-            message:"Medical Books not found"
-        })
-    }
-    return res.status(200).json({
-        success:true,
-        message:"DataFounded",
-        findata
-    })
-    
+const FindEngineeringBook = asyncHandler(async (req, res) => {
+  const findata = await BooksUser.find({ category: { $regex: /^engineering$/i } })
+  console.log("Engineering Books found:", findata.length)
+
+  return res.status(200).json({
+    success: true,
+    message: findata.length > 0 ? "Engineering Books Found" : "No Engineering Books Found",
+    findata
+  })
+})
+
+const FindComedyBook = asyncHandler(async (req, res) => {
+  const findata = await BooksUser.find({ category: { $regex: /^comedy$/i } })
+  console.log("Engineering Books found:", findata.length)
+
+  return res.status(200).json({
+    success: true,
+    message: findata.length > 0 ? "Engineering Books Found" : "No Engineering Books Found",
+    findata
+  })
 })
 
 const selloldBookData = asyncHandler(async (req, res) => {
@@ -171,38 +201,81 @@ NEW, GOOD, AVERAGE, BAD.
 
 
 const getsellBook = asyncHandler(async (req, res) => {
-    const userId = req.user._id;
-    console.log(userId, "---------");
+  const userId = req.user._id;
+  console.log(userId, "---------");
 
-    // find all books where userId matches
-    const findsellBook = await sellBookData.find({ userId: userId }); // ✅ correct
-    console.log(findsellBook);
+  // find all books where userId matches
+  const findsellBook = await sellBookData.find({ userId: userId }); // ✅ correct
+  console.log(findsellBook);
 
-    return res.status(200).json({
-        success: true,
-        books: findsellBook
-    });
+  return res.status(200).json({
+    success: true,
+    books: findsellBook
+  });
 });
 
-const showSellBook = asyncHandler(async(req , res) => {
-    const booksData = await sellBookData.find()
-    if(!booksData){
-        return res.status(401).json({
-            success:false,
-            message:"Books not found"
-        })
-    }
-    return res.status(200).json({
-        success:true,
-        booksData,
+const showSellBook = asyncHandler(async (req, res) => {
+  const booksData = await sellBookData.find()
+  if (!booksData) {
+    return res.status(401).json({
+      success: false,
+      message: "Books not found"
     })
+  }
+  return res.status(200).json({
+    success: true,
+    booksData,
+  })
 })
 
+const searchBooks = asyncHandler(async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({
+      success: false,
+      message: "Search query is required"
+    });
+  }
+
+  const searchRegex = new RegExp(q, 'i');
+
+  // Search in both models
+  const [booksCatalog, userListedBooks] = await Promise.all([
+    BooksUser.find({
+      $or: [
+        { title: searchRegex },
+        { brandName: searchRegex },
+        { category: searchRegex }
+      ]
+    }),
+    sellBookData.find({
+      $or: [
+        { title: searchRegex },
+        { author: searchRegex },
+        { category: searchRegex }
+      ]
+    })
+  ]);
+
+  // Normalize user listed books to match Catalog format if needed, or just combine
+  const combinedResults = [
+    ...booksCatalog.map(b => ({ ...b._doc, source: 'catalog' })),
+    ...userListedBooks.map(b => ({ ...b._doc, source: 'user-listed', image: b.bookImage, discountPrice: b.originalPrice }))
+  ];
+
+  return res.status(200).json({
+    success: true,
+    results: combinedResults
+  });
+});
+
 export {
-    Bookdatafind,
-    FindMedicalBook,
-    FindEngineeringBook,
-    selloldBookData,
-    getsellBook,
-    showSellBook
+  Bookdatafind,
+  FindMedicalBook,
+  FindEngineeringBook,
+  selloldBookData,
+  getsellBook,
+  showSellBook,
+  searchBooks,
+  FindComedyBook
 }

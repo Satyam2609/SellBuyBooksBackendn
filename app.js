@@ -9,7 +9,8 @@ const app = express()
 dotenv.config()
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://sell-buy-books-nextjs.vercel.app"
+  "http://localhost:8081",
+  "https://sell-buy-books-nextjs.vercel.app",
 ];
 
 app.use(cors({

@@ -2,37 +2,42 @@ import { Router } from "express";
 import { logginUser, logout, registerUser } from "../Controller/user.Controller.js";
 import { uploads } from "../middleware/upload.js";
 import { authProvider } from "../middleware/authProvider.js";
-import { cartCreate, deletecart, getCart, getprofile } from "../Controller/profile.Controller.js";
+import { cartCreate, deletecart, getCart, getprofile, updateProfile } from "../Controller/profile.Controller.js";
 import { jwtverify } from "../middleware/auth.js";
-import { Bookdatafind, FindEngineeringBook, FindMedicalBook, getsellBook, selloldBookData, showSellBook } from "../Controller/Books.controller.js";
+import { Bookdatafind, FindComedyBook, FindEngineeringBook, FindMedicalBook, getsellBook, searchBooks, selloldBookData, showSellBook } from "../Controller/Books.controller.js";
 import { createOrder } from "../Controller/PayMentBook.js";
-import { adminsignUp, anylitics, bookmanage, ordersDetails , ordersdatas } from "../Controller/Admin.js";
+import { adminsignUp, anylitics, bookmanage, getAllUsers, ordersDetails, ordersdatas, updateBook } from "../Controller/Admin.js";
 import { bookPredictor } from "../Controller/Agent.js";
 
 
 
-const router  = Router()
+const router = Router()
 
-router.route("/Signup").post(uploads.single("avatar"),registerUser)
+router.route("/Signup").post(uploads.single("avatar"), registerUser)
 router.route("/login").post(logginUser)
-router.route("/logout").put(jwtverify , logout)
+router.route("/logout").put(jwtverify, logout)
 router.route("/authprovider").get(authProvider)
-router.route("/getProfile").get(jwtverify,getprofile)
-router.route("/createdCart").post(uploads.single("image") ,jwtverify, cartCreate)
+router.route("/getProfile").get(jwtverify, getprofile)
+router.route("/updateProfile").put(jwtverify, uploads.single("profileImage"), updateProfile)
+router.route("/createdCart").post(uploads.single("image"), jwtverify, cartCreate)
 router.route("/BookData").get(Bookdatafind)
-router.route("/getAllCart").get(jwtverify , getCart)
-router.route("/create-order").post(jwtverify,createOrder)
-router.route("/deleteCart").delete(jwtverify ,deletecart)
+router.route("/searchBooks").get(searchBooks)
+router.route("/getAllCart").get(jwtverify, getCart)
+router.route("/create-order").post(jwtverify, createOrder)
+router.route("/deleteCart").delete(jwtverify, deletecart)
 router.route("/medicalBook").get(FindMedicalBook)
 router.route("/engineeringBook").get(FindEngineeringBook)
-router.route("/sellBook").post(uploads.single("bookimage"),jwtverify ,selloldBookData)
-router.route("/getsellbook").get(jwtverify , getsellBook)
+router.route("/comedyBook").get(FindComedyBook)
+router.route("/sellBook").post(uploads.single("bookimage"), jwtverify, selloldBookData)
+router.route("/getsellbook").get(jwtverify, getsellBook)
 router.route("/adminSignup").post(adminsignUp)
 router.route("/ordersDetails").get(ordersDetails)
-router.route("/ordersdatas").get(jwtverify,ordersdatas)
+router.route("/ordersdatas").get(jwtverify, ordersdatas)
 router.route("/showSellBook").get(showSellBook)
 router.route("/anlytic").get(anylitics)
 router.route("/bookmanage").get(bookmanage)
+router.route("/allUsers").get(getAllUsers)
+router.route("/updateBook/:id").put(jwtverify, uploads.single("image"), updateBook)
 router.route("/bookPredict").post(bookPredictor)
 
 export default router
