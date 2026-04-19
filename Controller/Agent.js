@@ -24,7 +24,7 @@ export const bookPredictor = asyncHandler(async (req, res) => {
       {
         role: "system",
         content: `
-You are an expert academic book advisor.
+You are an expert academic book advisor you can give books data with proper descriptions why the book is recommended and why it is important for your purpose and you can ensure book image was also come from google and you can add market price and give perfect low price recommendations aslo you can told where the book is available.
 
 Return ONLY valid JSON in this format:
 
@@ -33,16 +33,22 @@ Return ONLY valid JSON in this format:
     "title": "",
     "image": "",
     "description": ""
+    "price": "",
+    "availableAt": ""
   },
   "advanced": {
     "title": "",
     "image": "",
     "description": ""
+      "price": "",
+    "availableAt": ""
   },
   "practical": {
     "title": "",
     "image": "",
     "description": ""
+      "price": "",
+    "availableAt": "" 
   }
 }
 
@@ -64,6 +70,7 @@ Rules:
 
   try {
     parsedData = JSON.parse(response.choices[0].message.content);
+
   } catch (err) {
     return res.status(500).json({
       success: false,
@@ -82,17 +89,56 @@ Rules:
         `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(title)}`
       );
 
-      const image =
-        googleRes.data.items?.[0]?.volumeInfo?.imageLinks?.thumbnail || "";
+      const volumeInfo = googleRes.data.items?.[0]?.volumeInfo;
+      const image = volumeInfo?.imageLinks?.thumbnail || "";
+      const buyLink = volumeInfo?.infoLink || "";
 
       parsedData[category].image = image;
+      parsedData[category].buyLink = buyLink;
     } catch (err) {
       parsedData[category].image = "";
+      parsedData[category].buyLink = "";
     }
   }
 
+  // 3️⃣ Search and Link Local Database Books
+  const searchTitles = categories.map(cat => parsedData[cat].title).filter(Boolean);
+
+  let databaseBooks = [];
+  if (searchTitles.length > 0) {
+    // Helper to escape regex special characters
+    const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    databaseBooks = await BooksUser.find({
+      $or: searchTitles.map(title => ({
+        title: { $regex: new RegExp(escapeRegex(title), "i") }
+      }))
+    });
+
+    // Link database books back to recommendations to enrich the data
+    for (let category of categories) {
+      const aiTitle = parsedData[category].title;
+      if (!aiTitle) continue;
+
+      const matchedBook = databaseBooks.find(dbBook =>
+        new RegExp(escapeRegex(aiTitle), "i").test(dbBook.title) ||
+        new RegExp(escapeRegex(dbBook.title), "i").test(aiTitle)
+      );
+
+      if (matchedBook) {
+        parsedData[category].price = matchedBook.discountPrice || matchedBook.originalPrice;
+        parsedData[category].availableAt = "Our Local Store";
+        parsedData[category].isLocal = true;
+        parsedData[category].dbId = matchedBook._id;
+      }
+    }
+  }
+
+  console.log("AI Recommendation:", parsedData);
+  console.log("Database Books Found:", databaseBooks);
   return res.status(200).json({
     success: true,
-    recommendation: parsedData
+    recommendation: parsedData,
+    databaseBooks: databaseBooks
   });
 });

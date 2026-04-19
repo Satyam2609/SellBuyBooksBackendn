@@ -113,7 +113,8 @@ const logginUser = asyncHandler(async(req , res) => {
     .cookie("refreshtoken" , refreshtoken , option)
     .json({
         success:true,
-        message:"Loggin Successfully"
+        message:"Loggin Successfully",
+        accesstoken
     })
 })
 

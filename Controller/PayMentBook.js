@@ -61,6 +61,9 @@ export const createOrder = async (req, res) => {
         customer_name: paymentdata.fullName,
         customer_email: paymentdata.email,
         customer_phone: paymentdata.phone,
+      },
+      order_meta: {
+        return_url: `jobseeker://checkout-success?order_id={order_id}`
       }
     };
 
@@ -82,10 +85,16 @@ export const createOrder = async (req, res) => {
 
     })
 
+    // Simulate Admin Notification
+    console.log(`[NOTIFICATION] New Order Placed: ${response.data.order_id}`);
+    console.log(`Customer: ${paymentdata.fullName} (${paymentdata.email})`);
+    console.log(`Amount: ₹${amount}`);
+
     res.json({
       success: true,
       payment_session_id: response.data.payment_session_id,
-      order_id: response.data.order_id
+      order_id: response.data.order_id,
+      payment_url: `https://payments-test.cashfree.com/order/${response.data.order_id}`
     });
   } catch (err) {
     console.error(err);
